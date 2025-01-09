@@ -18,4 +18,15 @@ namespace UniversityLMS.Application.DTOs
 
         public IFormFile SourceCode { get; set; }
     }
+    public class SubmissionAssignmentDTO
+    {
+        public Guid AssignmentId { get; set; } // Foreign key to Assignment
+
+        public Guid UserId { get; set; } // Foreign key to Student
+
+        public int LanguageCode { get; set; }
+
+        public string SourceCode { get; set; }
+        public string FilePath { get; set; }
+    }
 }

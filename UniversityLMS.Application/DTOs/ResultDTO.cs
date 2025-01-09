@@ -18,4 +18,5 @@ namespace UniversityLMS.Application.DTOs
 
         public int Plagiarism { get; set; }
     }
+
 }

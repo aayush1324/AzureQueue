@@ -34,10 +34,10 @@ namespace UniversityLMS.Infrastructure.Repositories
         }
 
 
-        public async Task<ResultDTO> SubmitAssignmentAsync(SubmissionDTO submission)
+        public async Task<bool> SubmitAssignmentAsync(SubmissionDTO submission)
         {
             using var stream = submission.SourceCode.OpenReadStream();
-            var blobName = $"{submission.UserId}{submission.AssignmentId}{DateTime.UtcNow.Ticks}.txt";
+            var blobName = $"{submission.UserId}{submission.AssignmentId}";
             var blobUri = await _blobStorageService.UploadBlobAsync(blobName, stream);
 
             var sourceCodetext = await ConvertFileToStringAsync(submission.SourceCode);
@@ -49,61 +49,72 @@ namespace UniversityLMS.Infrastructure.Repositories
             if (plagiarism.PercentPlagiarism > 40)
                 throw new InvalidOperationException("FAILED");
 
-            var testCases = await _context.TestCases
-                                        .Where(tc => tc.AssignmentId == submission.AssignmentId)
-                                        .Select(tc => new TestCaseDTO
-                                        {
-                                            Input = tc.Input,
-                                            ExpectedOutput = tc.ExpectedOutput,
-                                        })
-                                        .ToListAsync();
+            //var testCases = await _context.TestCases
+            //                            .Where(tc => tc.AssignmentId == submission.AssignmentId)
+            //                            .Select(tc => new TestCaseDTO
+            //                            {
+            //                                Input = tc.Input,
+            //                                ExpectedOutput = tc.ExpectedOutput,
+            //                            })
+            //                            .ToListAsync();
 
-            var testcasesPassed = await _judgeService.AssignmentResult(sourceCodetext, testCases, submission.LanguageCode);
-            var totalCases = testCases.Count();
-            var testcasesFailed = totalCases - testcasesPassed;
+            //var testcasesPassed = await _judgeService.AssignmentResult(sourceCodetext, testCases, submission.LanguageCode);
+            //var totalCases = testCases.Count();
+            //var testcasesFailed = totalCases - testcasesPassed;
 
-            double result = totalCases > 0 ? (testcasesPassed / (double)totalCases) * 100 : 0;
+            //double result = totalCases > 0 ? (testcasesPassed / (double)totalCases) * 100 : 0;
 
-            var grade = "F";
+            //var grade = "F";
 
-            if (result > 80)
-            {
-                 grade = "A";
-            }
-            else if (result > 60 && result < 80)
-            {
-                 grade = "B";
-            }
-            else if (result > 40 && result < 60)
-            {
-                 grade = "C";
-            }
-            else if (result > 20 && result < 40)
-            {
-                 grade = "D";
-            }
-            else if (result < 20)
-            {
-                 grade = "E";
-            }
+            //if (result > 80)
+            //{
+            //     grade = "A";
+            //}
+            //else if (result > 60 && result < 80)
+            //{
+            //     grade = "B";
+            //}
+            //else if (result > 40 && result < 60)
+            //{
+            //     grade = "C";
+            //}
+            //else if (result > 20 && result < 40)
+            //{
+            //     grade = "D";
+            //}
+            //else if (result < 20)
+            //{
+            //     grade = "E";
+            //}
 
 
 
-            // Create the submission object
-            var submissionnew = new Submission
+            //// Create the submission object
+            //var submissionnew = new Submission
+            //{
+            //    AssignmentId = submission.AssignmentId,
+            //    UserId = submission.UserId,
+            //    LanguageCode = submission.LanguageCode.ToString(),
+            //    BlobUri = blobUri,
+            //    TestPassed = testcasesPassed,
+            //    TestFailed = testcasesFailed,
+            //    Result = result,
+            //    Grade = grade,
+            //    Plagiarism = plagiarism.PercentPlagiarism,
+            //};
+
+            //await _context.Submissions.AddAsync(submissionnew);
+            //_context.SaveChanges();
+            var submissionnew = new SubmitAssignment
             {
                 AssignmentId = submission.AssignmentId,
                 UserId = submission.UserId,
                 LanguageCode = submission.LanguageCode.ToString(),
                 BlobUri = blobUri,
-                TestPassed = testcasesPassed,
-                TestFailed = testcasesFailed,
-                Result = result,
-                Grade = grade,
-                Plagiarism = plagiarism.PercentPlagiarism,
+                SubmissionDate=DateTime.Now,
             };
 
-            await _context.Submissions.AddAsync(submissionnew);
+            await _context.SubmitAssignments.AddAsync(submissionnew);
             _context.SaveChanges();
             var outboxMessage = new OutboxMessage
             {
@@ -117,16 +128,16 @@ namespace UniversityLMS.Infrastructure.Repositories
             };
             await outboxMessageRepository.AddSubmission(outboxMessage);
             var queueMessage = await _blobStorageService.PushToQueue(outboxMessage);
-            var finalresult = new ResultDTO
-            {
-                TestPassed = testcasesPassed,
-                TestFailed = testcasesFailed,
-                Result = result,
-                Grade = grade,
-                Plagiarism = plagiarism.PercentPlagiarism,
+            //var finalresult = new ResultDTO
+            //{
+            //    TestPassed = testcasesPassed,
+            //    TestFailed = testcasesFailed,
+            //    Result = result,
+            //    Grade = grade,
+            //    Plagiarism = plagiarism.PercentPlagiarism,
 
-            };
-            return finalresult;
+            //};
+          return queueMessage?  true :  false;
 
         }
 
@@ -138,7 +149,68 @@ namespace UniversityLMS.Infrastructure.Repositories
             return await reader.ReadToEndAsync();
         }
 
+        public async Task ProcessQueueData(SubmissionAssignmentDTO submission)
+        {
+            var testCases = await _context.TestCases
+                                        .Where(tc => tc.AssignmentId == submission.AssignmentId)
+                                        .Select(tc => new TestCaseDTO
+                                        {
+                                            Input = tc.Input,
+                                            ExpectedOutput = tc.ExpectedOutput,
+                                        })
+                                        .ToListAsync();
+            var plagiarism = await _plagiarism.PlagiarismCodeAsync(submission.SourceCode);
 
+            if (plagiarism.PercentPlagiarism > 40)
+                throw new InvalidOperationException("FAILED");
+            var testcasesPassed = await _judgeService.AssignmentResult(submission.SourceCode, testCases, submission.LanguageCode);
+            var totalCases = testCases.Count();
+            var testcasesFailed = totalCases - testcasesPassed;
+
+            double result = totalCases > 0 ? (testcasesPassed / (double)totalCases) * 100 : 0;
+
+            var grade = "F";
+
+            if (result > 80)
+            {
+                grade = "A";
+            }
+            else if (result > 60 && result < 80)
+            {
+                grade = "B";
+            }
+            else if (result > 40 && result < 60)
+            {
+                grade = "C";
+            }
+            else if (result > 20 && result < 40)
+            {
+                grade = "D";
+            }
+            else if (result < 20)
+            {
+                grade = "E";
+            }
+
+
+
+            // Create the submission object
+            var submissionnew = new Submission
+            {
+                AssignmentId = submission.AssignmentId,
+                UserId = submission.UserId,
+                LanguageCode = submission.LanguageCode.ToString(),
+                BlobUri = submission.FilePath,
+                TestPassed = testcasesPassed,
+                TestFailed = testcasesFailed,
+                Result = result,
+                Grade = grade,
+                Plagiarism = plagiarism.PercentPlagiarism,
+            };
+
+            await _context.Submissions.AddAsync(submissionnew);
+            _context.SaveChanges();
+        }
 
 
 

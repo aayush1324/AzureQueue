@@ -16,13 +16,16 @@ namespace UniversityLMS.Application.Services
     {
         private readonly BlobContainerClient _containerClient;
         private readonly QueueClient _queueClient;
+        private readonly IConfiguration _configuration;
 
         public BlobStorageService(BlobServiceClient blobServiceClient, IConfiguration configuration, QueueServiceClient queueClient)
         {
-            string containerName = configuration["BlobStorage:ContainerName"]!;
-            _containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+            _configuration = configuration;
+            string containerName = _configuration["BlobStorage:ContainerName"]!;
+            _containerClient = blobServiceClient.GetBlobContainerClient("submissions");
+
             _containerClient.CreateIfNotExistsAsync();
-            string queueContainer = configuration["QueueStorage:ContainerName"]!;
+            string queueContainer = _configuration["QueueStorage:ContainerName"]!;
             _queueClient = queueClient.GetQueueClient("submissionsfiles");
             _queueClient.CreateIfNotExistsAsync();
         }

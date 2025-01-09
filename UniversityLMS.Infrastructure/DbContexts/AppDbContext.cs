@@ -27,7 +27,7 @@ namespace UniversityLMS.Infrastructure.DbContexts
 
         public DbSet<OutboxMessage> OutboxMessages { get; set; }
 
-
+        public DbSet<SubmitAssignment> SubmitAssignments { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Configuring entities with keys

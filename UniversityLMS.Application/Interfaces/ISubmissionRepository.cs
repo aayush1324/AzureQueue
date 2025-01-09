@@ -10,7 +10,7 @@ namespace UniversityLMS.Application.Interfaces
 {
     public interface ISubmissionRepository
     {
-        Task<ResultDTO> SubmitAssignmentAsync(SubmissionDTO submission);
+        Task<bool> SubmitAssignmentAsync(SubmissionDTO submission);
 
 
         Task<Submission> GetSubmissionByIdAsync(Guid submissionId);
@@ -18,6 +18,7 @@ namespace UniversityLMS.Application.Interfaces
         Task<IEnumerable<Submission>> GetSubmissionByStudentIdAsync(Guid studentId);
 
         Task<IEnumerable<Submission>> GetSubmissionsByUserIdAndAssignmentIdAsync(Guid userId, Guid assignmentId);
+        Task ProcessQueueData(SubmissionAssignmentDTO submission);
 
     }
 }
