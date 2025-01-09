@@ -49,7 +49,7 @@ var host = new HostBuilder()
         //    new QueueServiceClient("UseDevelopmentStorage=true"));
 
         services.AddDbContext<AppDbContext>(options =>
-                    options.UseSqlServer("Server=QB-NOI-1120;Database=UniversityProjectDbOutboxVersion;Trusted_Connection=True;TrustServerCertificate=True"));
+                    options.UseSqlServer("Server=QB-NOI-1120;Database=LMS;Trusted_Connection=True;TrustServerCertificate=True"));
 
         // Register QueueServiceClient without a name to make it the default
         services.AddSingleton(provider =>

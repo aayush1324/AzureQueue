@@ -28,5 +28,7 @@ namespace UniversityLMS.Application.DTOs
 
         public string SourceCode { get; set; }
         public string FilePath { get; set; }
+
+        public Guid OutboxMessageId { get; set; }
     }
 }

@@ -208,6 +208,16 @@ namespace UniversityLMS.Infrastructure.Repositories
                 Plagiarism = plagiarism.PercentPlagiarism,
             };
 
+            var outboxMessage = _context.OutboxMessages
+    .FirstOrDefault(e => e.Id == submission.OutboxMessageId);
+
+            if (outboxMessage != null)
+            {
+                outboxMessage.IsProcessed = true;
+             
+            }
+
+
             await _context.Submissions.AddAsync(submissionnew);
             _context.SaveChanges();
         }

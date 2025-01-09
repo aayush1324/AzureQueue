@@ -41,7 +41,7 @@ namespace QueueTrigger
                 FilePath = outboxMessage.FilePath,
                 UserId = outboxMessage.UserId,
                 SourceCode= codeFile,
-
+                OutboxMessageId = outboxMessage.Id
             };
             await submissionRepository.ProcessQueueData(submissionAssignmentDto);
             _logger.LogInformation($"C# Queue trigger function processed: {message.MessageText}");
